@@ -1,0 +1,334 @@
+openapi: "3.1.0"
+info:
+  title: Payments API
+  version: "1.0.0"
+  description: Payments service for processing and querying payment records.
+
+servers:
+  - url: https://api.grapity.dev/v1
+    description: Production server
+
+security:
+  - oauth2: [payments:read, payments:write]
+
+components:
+  securitySchemes:
+    oauth2:
+      type: oauth2
+      flows:
+        clientCredentials:
+          tokenUrl: https://auth.grapity.dev/oauth/token
+          scopes:
+            payments:read: Read payment data
+            payments:write: Create or update payments
+
+  schemas:
+    Payment:
+      title: Payment
+      description: A recorded payment transaction.
+      type: object
+      required: [id, amount, currency, status, createdAt]
+      properties:
+        id:
+          type: string
+          description: Unique payment identifier.
+          examples: [pay_01J2K3M4N5P6Q7R8S9T0]
+        amount:
+          type: number
+          format: decimal
+          description: Payment amount in the smallest currency unit.
+          examples: [1999.99]
+        currency:
+          type: string
+          format: currency
+          description: ISO 4217 currency code.
+          enum: [USD, EUR, GBP]
+          examples: [USD]
+        status:
+          type: string
+          enum: [pending, completed, failed, refunded]
+          description: Lifecycle status of the payment.
+          examples: [completed]
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the payment was created.
+          examples: ["2026-01-15T10:30:00Z"]
+
+    PaymentInput:
+      title: Payment Input
+      description: Fields required to create a new payment.
+      type: object
+      required: [amount, currency]
+      properties:
+        amount:
+          type: number
+          format: decimal
+          examples: [1999.99]
+        currency:
+          type: string
+          enum: [USD, EUR, GBP]
+          examples: [USD]
+        status:
+          type: string
+          enum: [pending, completed, failed, refunded]
+          examples: [pending]
+        metadata:
+          type: object
+          description: Optional key-value metadata.
+          properties:
+            orderId:
+              type: string
+            customerId:
+              type: string
+
+    Error:
+      title: Error
+      type: object
+      required: [error, message, statusCode]
+      properties:
+        error:
+          type: string
+          examples: [invalid_request]
+        message:
+          type: string
+          examples: ["Amount must be greater than zero"]
+        statusCode:
+          type: integer
+          examples: [400]
+
+paths:
+  /payments:
+    get:
+      operationId: listPayments
+      summary: List payments
+      description: Returns a paginated list of payments for the authenticated account.
+      parameters:
+        - name: limit
+          in: query
+          description: Maximum number of payments to return.
+          schema:
+            type: integer
+            default: 20
+            examples: [20]
+        - name: status
+          in: query
+          description: Filter by payment status.
+          schema:
+            type: string
+            enum: [pending, completed, failed, refunded]
+            examples: [completed]
+      responses:
+        "200":
+          description: A list of payments
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Payment"
+              examples:
+                default:
+                  summary: Paginated payment list
+                  value:
+                    - id: pay_01J2K3M4N5P6Q7R8S9T0
+                      amount: 1999.99
+                      currency: USD
+                      status: completed
+                      createdAt: "2026-01-15T10:30:00Z"
+
+    post:
+      operationId: createPayment
+      summary: Create a payment
+      description: Creates a new payment record.
+      security:
+        - oauth2: [payments:write]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+            examples:
+              default:
+                summary: Create a payment
+                value:
+                  amount: 1999.99
+                  currency: USD
+                  status: pending
+                  metadata:
+                    orderId: ord_123
+                    customerId: cus_456
+      responses:
+        "201":
+          description: Payment created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+              examples:
+                default:
+                  summary: Created payment
+                  value:
+                    id: pay_01J2K3M4N5P6Q7R8S9T0
+                    amount: 1999.99
+                    currency: USD
+                    status: pending
+                    createdAt: "2026-01-15T10:30:00Z"
+        "400":
+          description: Invalid request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                default:
+                  summary: Validation error
+                  value:
+                    error: invalid_request
+                    message: Amount must be greater than zero
+                    statusCode: 400
+
+  /payments/{id}:
+    get:
+      operationId: getPayment
+      summary: Get a payment by ID
+      description: Retrieves a single payment by its identifier.
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique payment identifier.
+          schema:
+            type: string
+            examples: [pay_01J2K3M4N5P6Q7R8S9T0]
+      responses:
+        "200":
+          description: Payment details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+              examples:
+                default:
+                  summary: Payment details
+                  value:
+                    id: pay_01J2K3M4N5P6Q7R8S9T0
+                    amount: 1999.99
+                    currency: USD
+                    status: completed
+                    createdAt: "2026-01-15T10:30:00Z"
+        "404":
+          description: Payment not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Error"
+              examples:
+                default:
+                  summary: Not found
+                  value:
+                    error: not_found
+                    message: Payment not found
+                    statusCode: 404
+
+    put:
+      operationId: updatePayment
+      summary: Update a payment
+      description: Updates an existing payment.
+      security:
+        - oauth2: [payments:write]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/PaymentInput"
+            examples:
+              default:
+                summary: Update a payment
+                value:
+                  amount: 2499.99
+                  currency: USD
+                  status: completed
+      responses:
+        "200":
+          description: Payment updated
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+    delete:
+      operationId: deletePayment
+      summary: Delete a payment
+      description: Deletes a payment by ID. Requires write scope.
+      security:
+        - oauth2: [payments:write]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "204":
+          description: Payment deleted
+
+  /payments/{id}/refund:
+    post:
+      operationId: refundPayment
+      summary: Refund a payment
+      description: Refunds a completed payment.
+      security:
+        - oauth2: [payments:write]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                reason:
+                  type: string
+                  examples: ["Customer request"]
+      responses:
+        "200":
+          description: Payment refunded
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"
+
+  /payments/legacy/{id}:
+    get:
+      operationId: getLegacyPayment
+      summary: Get a legacy payment (deprecated)
+      description: Legacy endpoint. Use `GET /payments/{id}` instead.
+      deprecated: true
+      x-sunset: "2026-12-31"
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        "200":
+          description: Legacy payment details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/Payment"

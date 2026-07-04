@@ -1,0 +1,28 @@
+apiVersion: v1
+kind: GatewayConfig
+
+spec:
+  name: payments-gateway
+  provider: kong
+  specName: payments-api
+  specSemver: "1.0.0"
+
+routes:
+  - path: /v1/payments
+    methods: [GET, POST]
+  - path: /v1/payments/{id}
+    methods: [GET, PUT, DELETE]
+  - path: /v1/payments/{id}/refund
+    methods: [POST]
+
+environments:
+  staging:
+    kongAddr: http://localhost:8001
+    upstream: http://localhost:8080
+    plugins:
+      - name: rate-limiting
+        config:
+          minute: 100
+      - name: key-auth
+        config:
+          key_names: [api-key]
