@@ -10,6 +10,7 @@ These files match the missions shown in the panel. You can download them directl
 |---|---|
 | `payments-api.yaml` | Rich OpenAPI 3.1 Payments API for the registry missions. |
 | `payments-api-breaking.yaml` | Same spec with a breaking change to demonstrate compatibility protection. |
+| `payments-api-evolved.yaml` | Backward-compatible evolution with an optional query parameter, bumping the version to 1.1.0. |
 | `grapity.yaml` | Project config for `grapity materialize`. |
 | `gateway.config.yaml` | Kong gateway config for the gateway mission. |
 | `docker-compose.kong.yml` | Local Kong + PostgreSQL stack for the optional bonus mission. |
@@ -50,10 +51,10 @@ These files match the missions shown in the panel. You can download them directl
    grapity registry push ./payments-api-breaking.yaml --name payments-api
    ```
 
-   This should fail with a breaking-change error. Then push it as a pre-release:
+   This should fail with a breaking-change error. Then push the safe evolution:
 
    ```bash
-   grapity registry push ./payments-api-breaking.yaml --name payments-api --prerelease
+   grapity registry push ./payments-api-evolved.yaml --name payments-api
    ```
 
 6. Materialize the locked spec:
