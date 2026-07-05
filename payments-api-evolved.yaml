@@ -5,7 +5,7 @@ info:
   description: Payments service for processing and querying payment records.
 
 servers:
-  - url: https://api.grapity.dev/v1
+  - url: https://api.grapity.dev
     description: Production server
 
 security:
@@ -98,7 +98,7 @@ components:
           examples: [400]
 
 paths:
-  /payments:
+  /v1/payments:
     get:
       operationId: listPayments
       summary: List payments
@@ -196,7 +196,7 @@ paths:
                     message: Amount must be greater than zero
                     statusCode: 400
 
-  /payments/{id}:
+  /v1/payments/{id}:
     get:
       operationId: getPayment
       summary: Get a payment by ID
@@ -288,7 +288,7 @@ paths:
         "204":
           description: Payment deleted
 
-  /payments/{id}/refund:
+  /v1/payments/{id}/refund:
     post:
       operationId: refundPayment
       summary: Refund a payment
@@ -319,7 +319,7 @@ paths:
               schema:
                 $ref: "#/components/schemas/Payment"
 
-  /payments/legacy/{id}:
+  /v1/payments/legacy/{id}:
     get:
       operationId: getLegacyPayment
       summary: Get a legacy payment (deprecated)
